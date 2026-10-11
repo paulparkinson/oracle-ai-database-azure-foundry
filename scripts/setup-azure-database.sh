@@ -11,9 +11,9 @@ fi
 if ! podman secret inspect oracle_pwd >/dev/null 2>&1; then
   openssl rand -base64 36 | podman secret create oracle_pwd - >/dev/null
 fi
-podman pull container-registry.oracle.com/database/free:latest
-# Pin this installation to the digest actually pulled, not a mutable runtime tag.
-db_image=$(podman image inspect container-registry.oracle.com/database/free:latest --format '{{index .RepoDigests 0}}')
+# Oracle AI Database 26ai Free 23.26.3.0.0, verified on the Azure demo VM.
+db_image=container-registry.oracle.com/database/free@sha256:c4d9b15a1b2240ce90730c23ce298fcdd34f6793792c1b3849181a080009c322
+podman pull "$db_image"
 podman volume create oracle-demo-data >/dev/null
 podman run -d --name oracle-demo-db --secret=oracle_pwd \
   --shm-size=1g -p 127.0.0.1:1521:1521 \

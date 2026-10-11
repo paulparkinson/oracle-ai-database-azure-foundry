@@ -40,9 +40,10 @@ The RAG demo uses Spring AI's Oracle vector-store integration directly.
   Entra-authenticated embedding and agent-list requests are blocked by missing
   data-plane permissions. The attempted scoped role assignment was rejected by
   Azure's ABAC condition. See the exact administrator request below.
-- A dedicated Azure VM has been created for Oracle AI Database Free; installation
-  is in progress and database readiness is not yet verified. No existing
-  `financialdb` was accessed. No live Foundry agent has been created.
+- **Azure database verified:** Oracle AI Database 26ai Free `23.26.3.0.0` runs on
+  the dedicated Azure VM. `FREEPDB1` is READ WRITE and a native cosine VECTOR
+  distance query returned `0` for identical vectors. No existing `financialdb`
+  was accessed. No live Foundry agent has been created.
 - An opt-in live test embeds a unique document, retrieves its Oracle chunk, asks
   Foundry for its verification code, then deletes only those test chunks.
 - Unit tests use explicitly mocked dependencies; their success is not evidence of
@@ -98,7 +99,7 @@ either demo works end-to-end. This deployment must not use an OCI/AWS/GCP databa
 - VM: `vm-oracle-demo-db`, East US, `Standard_D2s_v5` (2 vCPU, 8 GiB), Ubuntu
   22.04, 64-GiB Standard SSD, in `rg-pp-oracle-foundry-demo`.
 - Oracle Database Free container from Oracle Container Registry; the setup pins
-  the pulled image digest. This is a self-managed demo, **not** Autonomous
+  the verified `23.26.3.0.0` image digest. This is a self-managed demo, **not** Autonomous
   Database or a managed Oracle Database@Azure service.
 - Persistent named volume: `oracle-demo-data`. The generated administrator
   password stays in the VM's Podman secret store; never print it or commit it.
@@ -106,6 +107,9 @@ either demo works end-to-end. This deployment must not use an OCI/AWS/GCP databa
   **all inbound traffic**, including SSH. The public IP is for explicit outbound
   connectivity; it does not make the database publicly reachable. Administration
   uses Azure Run Command. The application is not yet deployed alongside it.
+- Database version, READ WRITE PDB and native VECTOR SQL were verified on
+  October 11, 2026. JDBC application credentials and end-to-end Foundry RAG are
+  **not yet verified**; database readiness does not resolve the model RBAC blocker.
 - VM, disk and public IP incur Azure charges. Deallocate the VM when unused;
   disks/public IP continue to incur charges. This demo has no backup/HA setup.
 
