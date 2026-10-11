@@ -35,13 +35,62 @@ The RAG demo uses Spring AI's Oracle vector-store integration directly.
 - The real pinned Oracle MCP server builds and its stdio discovery exposes exactly
   the three configured document-read tools. The packaged RAG UI starts, loads in
   Chrome, and rejects unauthenticated API requests with HTTP 401.
-- **Live Azure/Oracle verification is not yet complete.** The existing Azure CLI
-  session expired; resource discovery returned `AADSTS700082`. No new Azure
-  resources, paid deployments, database schemas, or live agents have been created.
+- **Live Azure/Oracle verification is not yet complete.** Azure sign-in now works.
+  A dedicated Foundry account, project and two model deployments were created;
+  Entra-authenticated embedding and agent-list requests are blocked by missing
+  data-plane permissions. The attempted scoped role assignment was rejected by
+  Azure's ABAC condition. See the exact administrator request below.
+- No Oracle schema or live agent has been created. The Azure location of the
+  intended database is unconfirmed; no existing `financialdb` was accessed.
 - An opt-in live test embeds a unique document, retrieves its Oracle chunk, asks
   Foundry for its verification code, then deletes only those test chunks.
 - Unit tests use explicitly mocked dependencies; their success is not evidence of
   a live database call. No production mock mode exists.
+
+## Dedicated Azure deployment
+
+Created in East US on October 11, 2026:
+
+| Resource | Name / configuration |
+| --- | --- |
+| Resource group | `rg-pp-oracle-foundry-demo` |
+| Foundry account | `pp-oracle-foundry-demo-20261011`, S0, system-assigned identity |
+| Project | `oracle-java-demo` |
+| Chat deployment | `demo-chat`: `gpt-4.1-mini`, version `2025-04-14` |
+| Embedding deployment | `demo-embedding`: `text-embedding-3-small`, version `1`, 1536 dimensions |
+
+Both deployments use regional **Standard**, capacity 10 each, not provisioned
+throughput. Model usage incurs charges. No VM, container host or publicly exposed
+MCP endpoint has been created. Successful provisioning is not an inference test.
+
+Set these non-secret values in your private `.env`:
+
+```properties
+FOUNDRY_ENDPOINT=https://pp-oracle-foundry-demo-20261011.openai.azure.com
+FOUNDRY_CHAT_DEPLOYMENT=demo-chat
+FOUNDRY_EMBEDDING_DEPLOYMENT=demo-embedding
+EMBEDDING_DIMENSIONS=1536
+FOUNDRY_PROJECT_ENDPOINT=https://pp-oracle-foundry-demo-20261011.services.ai.azure.com/api/projects/oracle-java-demo
+```
+
+**Administrator request:** grant the demo operator **Cognitive Services OpenAI
+User** (role ID `5e0bd9bd-7b93-4f28-af87-19fc36ad61bd`) on this Foundry account,
+and **Foundry User** (role ID `53ca6127-db72-4b80-b1b0-d745d6d5456d`) on its
+`oracle-java-demo` project. Keep both grants scoped to these demo resources;
+subscription-wide access is unnecessary. The operator cannot self-assign these
+roles because `Microsoft.Authorization/roleAssignments/write` was denied by ABAC.
+
+Observed failures:
+
+- `POST /openai/v1/embeddings`: missing
+  `Microsoft.CognitiveServices/accounts/OpenAI/deployments/embeddings/action`.
+- `GET /api/projects/oracle-java-demo/agents?api-version=v1`: missing
+  `Microsoft.CognitiveServices/accounts/AIServices/agents/read`.
+
+After those grants, verify inference, identify the approved Azure Oracle database,
+run the opt-in Oracle/Foundry test, and deploy an authenticated MCP endpoint before
+claiming either demo works end-to-end. Name-based checks in both accessible Azure
+subscriptions found no `financialdb`; this is not proof that no VM hosts it.
 
 ## Build and run
 
@@ -75,8 +124,8 @@ Use the module READMEs for database privileges, authentication, MCP setup and
 commands. Restart normally without `INITIALIZE_SCHEMA=true` after initial setup.
 The app binds to loopback by default. No VM is inherently required: Java can run
 on a workstation or a suitable Azure container host. Remote sharing requires TLS,
-enterprise authentication and network access to Oracle; this commit does not
-provision an Azure deployment.
+enterprise authentication and network access to Oracle. Only the Foundry resources
+listed above are provisioned; the application is not yet hosted in Azure.
 
 ## Models, identity and data boundaries
 
