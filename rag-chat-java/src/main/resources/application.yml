@@ -1,0 +1,32 @@
+server:
+  address: ${BIND_ADDRESS:127.0.0.1}
+  port: ${PORT:8080}
+  error:
+    include-message: never
+spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+  mvc:
+    async:
+      request-timeout: 120000
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
+      connection-timeout: 15000
+      data-source-properties:
+        oracle.jdbc.ReadTimeout: 60000
+        oracle.net.CONNECT_TIMEOUT: 15000
+demo:
+  api-token: ${DEMO_API_TOKEN}
+  foundry-endpoint: ${FOUNDRY_ENDPOINT}
+  api-key: ${FOUNDRY_API_KEY:}
+  chat-deployment: ${FOUNDRY_CHAT_DEPLOYMENT}
+  embedding-deployment: ${FOUNDRY_EMBEDDING_DEPLOYMENT}
+  dimensions: ${EMBEDDING_DIMENSIONS:1536}
+  initialize-schema: ${INITIALIZE_SCHEMA:false}

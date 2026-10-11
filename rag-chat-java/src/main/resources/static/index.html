@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oracle + Microsoft Foundry · Java RAG</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body><main>
+<p class="eyebrow">ORACLE AI DATABASE / MICROSOFT FOUNDRY</p>
+<h1>Your documents. Grounded answers.</h1>
+<p>Java RAG · Foundry embeddings and chat · Oracle vector retrieval</p>
+<section><label for="token">Demo access token</label><input type="password" id="token" autocomplete="off" placeholder="DEMO_API_TOKEN (kept in memory only)"></section>
+<section><h2>1. Index a document</h2><p>PDF, Markdown, or text · up to 2 MiB. Document text is sent to your configured Foundry embedding deployment.</p><form id="upload"><input id="file" type="file" accept=".pdf,.md,.txt" required><button>Index in Oracle</button></form><pre id="ingestion" role="status"></pre></section>
+<section><h2>2. Ask a question</h2><p>Each question is independent. Only passages retrieved from Oracle are supplied as evidence; there is no web-search or mock-data fallback.</p><form id="chat"><textarea id="question" maxlength="2000" required placeholder="What must be checked before recommending a stock transfer?"></textarea><button>Ask with evidence</button></form><div id="answer" aria-live="polite"></div></section>
+<section><h2>Retrieved evidence</h2><p>Source filenames, chunk IDs and hashes describe retrieved passages—not a guarantee that every generated claim is correct. Check the excerpts.</p><div id="sources"></div></section>
+<footer>Demonstration application. Shared demo token; deploy behind enterprise authentication and TLS before sharing.</footer>
+</main></body></html>

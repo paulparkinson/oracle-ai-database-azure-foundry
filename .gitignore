@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+**/target/
+.deps/
+.DS_Store
+*.log
+wallet*/
+*.p12
+*.sso
+*.pem
+*.key
+.azure/
+evidence-private/
