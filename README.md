@@ -40,8 +40,9 @@ The RAG demo uses Spring AI's Oracle vector-store integration directly.
   Entra-authenticated embedding and agent-list requests are blocked by missing
   data-plane permissions. The attempted scoped role assignment was rejected by
   Azure's ABAC condition. See the exact administrator request below.
-- No Oracle schema or live agent has been created. The Azure location of the
-  intended database is unconfirmed; no existing `financialdb` was accessed.
+- A dedicated Azure VM has been created for Oracle AI Database Free; installation
+  is in progress and database readiness is not yet verified. No existing
+  `financialdb` was accessed. No live Foundry agent has been created.
 - An opt-in live test embeds a unique document, retrieves its Oracle chunk, asks
   Foundry for its verification code, then deletes only those test chunks.
 - Unit tests use explicitly mocked dependencies; their success is not evidence of
@@ -60,8 +61,9 @@ Created in East US on October 11, 2026:
 | Embedding deployment | `demo-embedding`: `text-embedding-3-small`, version `1`, 1536 dimensions |
 
 Both deployments use regional **Standard**, capacity 10 each, not provisioned
-throughput. Model usage incurs charges. No VM, container host or publicly exposed
-MCP endpoint has been created. Successful provisioning is not an inference test.
+throughput. Model usage incurs charges. The database VM below is separate from
+these model deployments. No publicly exposed MCP endpoint has been created.
+Successful provisioning is not an inference test.
 
 Set these non-secret values in your private `.env`:
 
@@ -87,10 +89,39 @@ Observed failures:
 - `GET /api/projects/oracle-java-demo/agents?api-version=v1`: missing
   `Microsoft.CognitiveServices/accounts/AIServices/agents/read`.
 
-After those grants, verify inference, identify the approved Azure Oracle database,
-run the opt-in Oracle/Foundry test, and deploy an authenticated MCP endpoint before
-claiming either demo works end-to-end. Name-based checks in both accessible Azure
-subscriptions found no `financialdb`; this is not proof that no VM hosts it.
+After those grants, verify inference, run the opt-in Oracle/Foundry test against
+the new Azure database, and deploy an authenticated MCP endpoint before claiming
+either demo works end-to-end. This deployment must not use an OCI/AWS/GCP database.
+
+### Azure-only database
+
+- VM: `vm-oracle-demo-db`, East US, `Standard_D2s_v5` (2 vCPU, 8 GiB), Ubuntu
+  22.04, 64-GiB Standard SSD, in `rg-pp-oracle-foundry-demo`.
+- Oracle Database Free container from Oracle Container Registry; the setup pins
+  the pulled image digest. This is a self-managed demo, **not** Autonomous
+  Database or a managed Oracle Database@Azure service.
+- Persistent named volume: `oracle-demo-data`. The generated administrator
+  password stays in the VM's Podman secret store; never print it or commit it.
+- The listener binds only to `127.0.0.1:1521`. NSG `nsg-oracle-demo-db` denies
+  **all inbound traffic**, including SSH. The public IP is for explicit outbound
+  connectivity; it does not make the database publicly reachable. Administration
+  uses Azure Run Command. The application is not yet deployed alongside it.
+- VM, disk and public IP incur Azure charges. Deallocate the VM when unused;
+  disks/public IP continue to incur charges. This demo has no backup/HA setup.
+
+Run setup once, then verify (Azure rejects concurrent Run Commands):
+
+```bash
+az vm run-command invoke -g rg-pp-oracle-foundry-demo -n vm-oracle-demo-db \
+  --command-id RunShellScript --scripts @scripts/setup-azure-database.sh
+az vm run-command invoke -g rg-pp-oracle-foundry-demo -n vm-oracle-demo-db \
+  --command-id RunShellScript --scripts @scripts/check-azure-database.sh
+```
+
+The verification prints the actual database version, PDB open mode, loopback
+port mapping and native cosine vector distance (expected `0`). It does not test
+Foundry inference or JDBC application credentials. Do not replace/remove the
+existing container or its volume when rerunning setup.
 
 ## Build and run
 
