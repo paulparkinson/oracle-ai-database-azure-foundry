@@ -27,7 +27,7 @@ vendored [Oracle MCP Toolkit](https://github.com/oracle/mcp/tree/main/src/oracle
 executes SQL; this repository does not fork that execution engine.
 The RAG demo uses Spring AI's Oracle vector-store integration directly.
 
-## Validation status — October 11, 2026
+## Validation status — October 12, 2026
 
 - Both Java modules compile; **17 automated unit and HTTP contract tests pass**.
 - Tests cover chunking/PDF extraction, idempotent document IDs, evidence streaming,
@@ -35,11 +35,14 @@ The RAG demo uses Spring AI's Oracle vector-store integration directly.
 - The real pinned Oracle MCP server builds and its stdio discovery exposes exactly
   the three configured document-read tools. The packaged RAG UI starts, loads in
   Chrome, and rejects unauthenticated API requests with HTTP 401.
-- **Live Azure/Oracle verification is not yet complete.** Azure sign-in now works.
-  A dedicated Foundry account, project and two model deployments were created;
-  Entra-authenticated embedding and agent-list requests are blocked by missing
-  data-plane permissions. The attempted scoped role assignment was rejected by
-  Azure's ABAC condition. See the exact administrator request below.
+- **Live Foundry operator access verified:** Entra-authenticated embeddings returned
+  1,536 dimensions from `text-embedding-3-small`; chat returned the requested
+  `AZURE_CHAT_OK` response from `gpt-4.1-mini-2025-04-14`; agent listing succeeded.
+  The Java build and database health check also passed again.
+- **End-to-end RAG and agent/MCP verification remains incomplete.** The Azure VM
+  now has a system-assigned managed identity, but granting that identity Foundry
+  inference access is still denied by the operator's ABAC condition. Operator
+  access does not automatically grant access to the deployed application.
 - **Azure database verified:** Oracle AI Database 26ai Free `23.26.3.0.0` runs on
   the dedicated Azure VM. `FREEPDB1` is READ WRITE and a native cosine VECTOR
   distance query returned `0` for identical vectors. No existing `financialdb`
@@ -76,23 +79,28 @@ EMBEDDING_DIMENSIONS=1536
 FOUNDRY_PROJECT_ENDPOINT=https://pp-oracle-foundry-demo-20261011.services.ai.azure.com/api/projects/oracle-java-demo
 ```
 
-**Administrator request:** grant the demo operator **Cognitive Services OpenAI
-User** (role ID `5e0bd9bd-7b93-4f28-af87-19fc36ad61bd`) on this Foundry account,
-and **Foundry User** (role ID `53ca6127-db72-4b80-b1b0-d745d6d5456d`) on its
-`oracle-java-demo` project. Keep both grants scoped to these demo resources;
-subscription-wide access is unnecessary. The operator cannot self-assign these
-roles because `Microsoft.Authorization/roleAssignments/write` was denied by ABAC.
+**Remaining administrator request:** grant **Cognitive Services OpenAI User**
+to the system-assigned identity of `vm-oracle-demo-db`, principal
+`de0f5ab7-68e1-4877-bd06-fea5576f02f5`, scoped only to the demo Foundry account:
 
-Observed failures:
+```sh
+az role assignment create \
+  --assignee-object-id de0f5ab7-68e1-4877-bd06-fea5576f02f5 \
+  --assignee-principal-type ServicePrincipal \
+  --role 5e0bd9bd-7b93-4f28-af87-19fc36ad61bd \
+  --scope /subscriptions/7080446f-ee76-4aa2-b9dd-c2625f63cab0/resourceGroups/rg-pp-oracle-foundry-demo/providers/Microsoft.CognitiveServices/accounts/pp-oracle-foundry-demo-20261011
+```
 
-- `POST /openai/v1/embeddings`: missing
-  `Microsoft.CognitiveServices/accounts/OpenAI/deployments/embeddings/action`.
-- `GET /api/projects/oracle-java-demo/agents?api-version=v1`: missing
-  `Microsoft.CognitiveServices/accounts/AIServices/agents/read`.
+This assignment was attempted on October 12 and rejected with
+`AuthorizationFailed` for `Microsoft.Authorization/roleAssignments/write` (ABAC).
+The operator's embedding, chat and agent-list permissions now work; those grants
+do not need to be requested again. No stored operator tokens or account keys
+were substituted for the VM identity.
 
-After those grants, verify inference, run the opt-in Oracle/Foundry test against
-the new Azure database, and deploy an authenticated MCP endpoint before claiming
-either demo works end-to-end. This deployment must not use an OCI/AWS/GCP database.
+Next: configure the dedicated database application schema, deploy the Java RAG
+service on Azure, run its opt-in live Oracle/Foundry test, then deploy and validate
+the authenticated MCP endpoint. Neither demo is yet verified end-to-end. This
+deployment must not use an OCI/AWS/GCP database.
 
 ### Azure-only database
 
